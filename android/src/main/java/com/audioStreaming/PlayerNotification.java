@@ -20,7 +20,7 @@ import static com.audioStreaming.Signal.BROADCAST_PLAYBACK_PLAY;
 
 public class PlayerNotification {
     private Class<?> clsActivity;
-    private static final int NOTIFY_ME_ID = 696969;
+    private static final int NOTIFICATION_ID = 696969;
     private Notification.Builder notifyBuilder;
     private NotificationManager notifyManager = null;
     private Service service = null;
@@ -108,7 +108,7 @@ public class PlayerNotification {
         if (notifyManager == null) return; // ie. onCreate hasn't been called yet. I don't think this is possible, but just incase
 
         updateNotificationBuilder(streamTitle, isPlaying);
-        notifyManager.notify(NOTIFY_ME_ID, notifyBuilder.build());
+        notifyManager.notify(NOTIFICATION_ID, notifyBuilder.build());
     }
 
     private PendingIntent makePendingIntent(String broadcast) {
@@ -118,21 +118,12 @@ public class PlayerNotification {
 
     public void clearNotification() {
         if (notifyManager != null)
-            notifyManager.cancel(NOTIFY_ME_ID);
+            notifyManager.cancel(NOTIFICATION_ID);
     }
 
     public void destroy() {
-        if (notifyManager != null) {
-            notifyManager.cancelAll();
-        }
         clearNotification();
         notifyBuilder = null;
         notifyManager = null;
-    }
-
-    public void cancelAllNotifications() {
-        if (notifyManager != null) {
-            notifyManager.cancelAll();
-        }
     }
 }

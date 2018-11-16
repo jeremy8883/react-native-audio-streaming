@@ -22,7 +22,6 @@ class SignalReceiver extends BroadcastReceiver {
                 this.signal.stop();
             }
         } else if (action.equals(Signal.BROADCAST_EXIT)) {
-            this.signal.cancelAllNotifications();
             this.signal.stop();
             this.signal.destroyNotification();
         }

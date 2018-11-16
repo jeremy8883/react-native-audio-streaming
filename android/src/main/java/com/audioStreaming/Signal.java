@@ -156,12 +156,6 @@ public class Signal extends Service implements OnErrorListener,
         playerNotification.showNotification();
     }
 
-    public void cancelAllNotifications() {
-        if (playerNotification != null) {
-            playerNotification.cancelAllNotifications();
-        }
-    }
-
     public void destroyNotification() {
         if (playerNotification != null) {
             playerNotification.destroy();
