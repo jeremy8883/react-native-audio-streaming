@@ -21,13 +21,18 @@
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="50dp">
+
                 <ImageButton
                     android:id="@+id/btn_streaming_notification_play"
                     android:layout_width="60dp"
                     android:layout_height="60dp"
                     android:layout_gravity="center_vertical"
                     android:layout_marginRight="5dp"
-                    android:src="@android:drawable/ic_media_play" />
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_media_play"
+                    android:background="@android:color/transparent"
+                    android:padding="15dp"
+                    />
                 <TextView
                     android:id="@+id/song_name_notification"
                     android:layout_width="match_parent"

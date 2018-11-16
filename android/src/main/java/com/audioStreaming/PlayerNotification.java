@@ -95,7 +95,7 @@ public class PlayerNotification {
         );
         remoteViews.setImageViewResource(
                 R.id.btn_streaming_notification_play,
-                isPlaying ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play
+                isPlaying ? R.drawable.ic_media_pause : R.drawable.ic_media_play
         );
         notifyBuilder.setContent(remoteViews);
     }
