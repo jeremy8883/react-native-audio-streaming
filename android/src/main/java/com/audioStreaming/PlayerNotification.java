@@ -37,10 +37,7 @@ public class PlayerNotification {
         this.context = context;
     }
 
-    // Allows the dev to specify a custom notification from AndroidManifest.xml
-    private int getSmallIcon() {
-        int defaultIcon = android.R.drawable.ic_lock_silent_mode_off;
-
+    private int getDrawableFromMetaData(String metaTagName, int defaultDrawable) {
         // Allows the dev to specify a custom notification from AndroidManifest.xml
         ApplicationInfo app = null;
         try {
@@ -49,11 +46,26 @@ public class PlayerNotification {
                     PackageManager.GET_META_DATA
             );
         } catch (PackageManager.NameNotFoundException e) {
-            return defaultIcon;
+            return defaultDrawable;
         }
         Bundle bundle = app.metaData;
 
-        return bundle.getInt("com.audioStreaming.small_notification_icon", defaultIcon);
+        return bundle.getInt(metaTagName, defaultDrawable);
+    }
+
+    // Allows the dev to specify a custom notification from AndroidManifest.xml
+    private int getSmallIcon() {
+        return getDrawableFromMetaData(
+                "com.audioStreaming.small_notification_icon",
+                android.R.drawable.ic_lock_silent_mode_off
+        );
+    }
+
+    private int getLargeIcon() {
+        return getDrawableFromMetaData(
+                "com.audioStreaming.large_notification_icon",
+                android.R.drawable.ic_lock_silent_mode_off
+        );
     }
 
     public void showNotification() {
@@ -64,10 +76,8 @@ public class PlayerNotification {
         // Prevent the app from launching a new instance
         openApp.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
-        int smallIcon = getSmallIcon();
-
         notifyBuilder = new Notification.Builder(this.context)
-                .setSmallIcon(smallIcon)
+                .setSmallIcon(getSmallIcon())
                 .setContentText("")
                 .setOngoing(true)
                 .setContent(remoteViews)
@@ -89,6 +99,7 @@ public class PlayerNotification {
         stackBuilder.addNextIntent(resultIntent);
 
         remoteViews.setOnClickPendingIntent(R.id.btn_streaming_notification_play, makePendingIntent(BROADCAST_PLAYBACK_PLAY));
+        remoteViews.setImageViewResource(R.id.streaming_icon, getLargeIcon());
         notifyManager = (NotificationManager) this.service.getSystemService(Context.NOTIFICATION_SERVICE);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

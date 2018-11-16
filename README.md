@@ -105,14 +105,17 @@ ReactNativeAudioStreaming.stop();
 
 For more information see the Example app.
 
-### Set a custom notification icon (android only)
+### Set a custom notification icon (Android only)
 
-In your `android/app/AndroidManifest.xml` file, add the following inside the `<application>` node:
+Add your drawable files under `android/src/res/drawble`, then in `AndroidManifest.xml` add the following inside the `<application>` node:
 
 ```
 <meta-data
     android:name="com.audioStreaming.small_notification_icon"
     android:resource="@drawable/my_custom_small_icon" />
+<meta-data
+    android:name="com.audioStreaming.large_notification_icon"
+    android:resource="@drawable/my_custom_large_icon" />
 ```
 
 ### Player UI
