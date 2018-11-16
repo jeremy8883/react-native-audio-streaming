@@ -56,6 +56,7 @@ public class Signal extends Service implements OnErrorListener,
     private Context context;
     private String streamingURL;
     public boolean isPlaying = false;
+    public String streamTitle = null;
     private boolean isPreparingStarted = false;
     private EventsReceiver eventsReceiver;
     private ReactNativeAudioStreamingModule module;
@@ -137,14 +138,13 @@ public class Signal extends Service implements OnErrorListener,
 
     public void play() {
         if (isConnected()) {
-            makeNotificationOngoing(true);
             this.prepare();
         } else {
-            makeNotificationOngoing(false);
             sendBroadcast(new Intent(Mode.STOPPED));
         }
 
         this.isPlaying = true;
+        updateNotificationAndShow();
     }
 
     public void stop() {
@@ -155,8 +155,8 @@ public class Signal extends Service implements OnErrorListener,
             this.aacPlayer.stop();
         }
 
-        makeNotificationOngoing(false);
         sendBroadcast(new Intent(Mode.STOPPED));
+        updateNotificationAndShow();
     }
 
     public NotificationManager getNotifyManager() {
@@ -171,6 +171,7 @@ public class Signal extends Service implements OnErrorListener,
 
     public void showNotification() {
         remoteViews = new RemoteViews(context.getPackageName(), R.layout.streaming_notification_player);
+        streamTitle = null; // Will get set to its proper value again once the player starts
 
         String packageName = context.getPackageName();
         Intent openApp = context.getPackageManager().getLaunchIntentForPackage(packageName);
@@ -200,7 +201,6 @@ public class Signal extends Service implements OnErrorListener,
         stackBuilder.addNextIntent(resultIntent);
 
         remoteViews.setOnClickPendingIntent(R.id.btn_streaming_notification_play, makePendingIntent(BROADCAST_PLAYBACK_PLAY));
-        remoteViews.setOnClickPendingIntent(R.id.btn_streaming_notification_stop, makePendingIntent(BROADCAST_EXIT));
         notifyManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -219,7 +219,7 @@ public class Signal extends Service implements OnErrorListener,
             notifyBuilder.setChannelId("com.audioStreaming");
         }
 
-        notifyManager.notify(NOTIFY_ME_ID, notifyBuilder.build());
+        updateNotificationAndShow();
     }
 
     private PendingIntent makePendingIntent(String broadcast) {
@@ -289,6 +289,8 @@ public class Signal extends Service implements OnErrorListener,
     public void onCompletion(MediaPlayer mediaPlayer) {
         this.isPlaying = false;
         this.aacPlayer.stop();
+
+        updateNotificationAndShow();
         sendBroadcast(new Intent(Mode.COMPLETED));
     }
 
@@ -301,6 +303,7 @@ public class Signal extends Service implements OnErrorListener,
             this.isPlaying = true;
             sendBroadcast(new Intent(Mode.BUFFERING_END));
         }
+        updateNotificationAndShow();
         return false;
     }
 
@@ -344,6 +347,7 @@ public class Signal extends Service implements OnErrorListener,
             this.isPlaying = false;
             sendBroadcast(new Intent(Mode.BUFFERING_START));
         }
+        updateNotificationAndShow();
     }
 
     @Override
@@ -351,6 +355,7 @@ public class Signal extends Service implements OnErrorListener,
         this.isPlaying = false;
         this.isPreparingStarted = false;
         sendBroadcast(new Intent(Mode.ERROR));
+        updateNotificationAndShow();
         //  TODO
     }
 
@@ -362,8 +367,8 @@ public class Signal extends Service implements OnErrorListener,
         sendBroadcast(metaIntent);
 
         if (key != null && key.equals("StreamTitle") && remoteViews != null && value != null) {
-            remoteViews.setTextViewText(R.id.song_name_notification, value);
-            notifyBuilder.setContent(remoteViews);
+            this.streamTitle = value;
+            updateNotificationAndShow();
             notifyManager.notify(NOTIFY_ME_ID, notifyBuilder.build());
         }
     }
@@ -378,15 +383,31 @@ public class Signal extends Service implements OnErrorListener,
         this.isPlaying = false;
         this.isPreparingStarted = false;
 
-        makeNotificationOngoing(false);
         sendBroadcast(new Intent(Mode.STOPPED));
+        updateNotificationAndShow();
         //  TODO
     }
 
-    private void makeNotificationOngoing(boolean isOngoing) {
+    private void updateNotificationBuilder() {
+        if (notifyBuilder == null) return; // ie. notification hasn't been shown yet
+
+        notifyBuilder.setOngoing(this.isPlaying);
+        remoteViews.setTextViewText(
+                R.id.song_name_notification,
+                this.streamTitle == null ? "" : this.streamTitle
+        );
+        remoteViews.setImageViewResource(
+                R.id.btn_streaming_notification_play,
+                this.isPlaying ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play
+        );
+        notifyBuilder.setContent(remoteViews);
+    }
+
+    private void updateNotificationAndShow() {
         if (notifyBuilder == null) return; // ie. notification hasn't been shown yet
         if (notifyManager == null) return; // ie. onCreate hasn't been called yet. I don't think this is possible, but just incase
-        notifyBuilder.setOngoing(isOngoing);
+
+        updateNotificationBuilder();
         notifyManager.notify(NOTIFY_ME_ID, notifyBuilder.build());
     }
 }
