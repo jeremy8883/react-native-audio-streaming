@@ -7,7 +7,11 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.os.Bundle;
 import android.support.v4.app.TaskStackBuilder;
 import android.widget.RemoteViews;
 
@@ -25,12 +29,31 @@ public class PlayerNotification {
     private NotificationManager notifyManager = null;
     private Service service = null;
     private Context context = null;
-    public static RemoteViews remoteViews;
+    private static RemoteViews remoteViews;
 
     public PlayerNotification(Class<?> clsActivity, Context context, Service service) {
         this.clsActivity = clsActivity;
         this.service = service;
         this.context = context;
+    }
+
+    // Allows the dev to specify a custom notification from AndroidManifest.xml
+    private int getSmallIcon() {
+        int defaultIcon = android.R.drawable.ic_lock_silent_mode_off;
+
+        // Allows the dev to specify a custom notification from AndroidManifest.xml
+        ApplicationInfo app = null;
+        try {
+            app = context.getPackageManager().getApplicationInfo(
+                    context.getPackageName(),
+                    PackageManager.GET_META_DATA
+            );
+        } catch (PackageManager.NameNotFoundException e) {
+            return defaultIcon;
+        }
+        Bundle bundle = app.metaData;
+
+        return bundle.getInt("com.audioStreaming.small_notification_icon", defaultIcon);
     }
 
     public void showNotification() {
@@ -41,8 +64,10 @@ public class PlayerNotification {
         // Prevent the app from launching a new instance
         openApp.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
+        int smallIcon = getSmallIcon();
+
         notifyBuilder = new Notification.Builder(this.context)
-                .setSmallIcon(android.R.drawable.ic_lock_silent_mode_off) // TODO Use app icon instead
+                .setSmallIcon(smallIcon)
                 .setContentText("")
                 .setOngoing(true)
                 .setContent(remoteViews)
