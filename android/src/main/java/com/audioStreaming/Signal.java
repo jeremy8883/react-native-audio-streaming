@@ -20,7 +20,6 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
-import android.support.v7.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
@@ -138,8 +137,10 @@ public class Signal extends Service implements OnErrorListener,
 
     public void play() {
         if (isConnected()) {
+            makeNotificationOngoing(true);
             this.prepare();
         } else {
+            makeNotificationOngoing(false);
             sendBroadcast(new Intent(Mode.STOPPED));
         }
 
@@ -154,6 +155,7 @@ public class Signal extends Service implements OnErrorListener,
             this.aacPlayer.stop();
         }
 
+        makeNotificationOngoing(false);
         sendBroadcast(new Intent(Mode.STOPPED));
     }
 
@@ -169,11 +171,25 @@ public class Signal extends Service implements OnErrorListener,
 
     public void showNotification() {
         remoteViews = new RemoteViews(context.getPackageName(), R.layout.streaming_notification_player);
+
+        String packageName = context.getPackageName();
+        Intent openApp = context.getPackageManager().getLaunchIntentForPackage(packageName);
+        // Prevent the app from launching a new instance
+        openApp.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
         notifyBuilder = new Notification.Builder(this.context)
                 .setSmallIcon(android.R.drawable.ic_lock_silent_mode_off) // TODO Use app icon instead
                 .setContentText("")
                 .setOngoing(true)
-                .setContent(remoteViews);
+                .setContent(remoteViews)
+                .setCategory(Notification.CATEGORY_TRANSPORT)
+                // Stops the playback when the notification is swiped away
+                .setDeleteIntent(makePendingIntent(BROADCAST_EXIT))
+                // Make it visible in the lock screen
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setContentIntent(
+                        PendingIntent.getActivity(context, 0, openApp, PendingIntent.FLAG_CANCEL_CURRENT)
+                );
 
         Intent resultIntent = new Intent(this.context, this.clsActivity);
         resultIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -183,26 +199,26 @@ public class Signal extends Service implements OnErrorListener,
         stackBuilder.addParentStack(this.clsActivity);
         stackBuilder.addNextIntent(resultIntent);
 
-        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0,
-                PendingIntent.FLAG_UPDATE_CURRENT);
-
-        notifyBuilder.setContentIntent(resultPendingIntent);
         remoteViews.setOnClickPendingIntent(R.id.btn_streaming_notification_play, makePendingIntent(BROADCAST_PLAYBACK_PLAY));
         remoteViews.setOnClickPendingIntent(R.id.btn_streaming_notification_stop, makePendingIntent(BROADCAST_EXIT));
         notifyManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-    
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel =
-                    new NotificationChannel("com.audioStreaming", "Audio Streaming",
-                            NotificationManager.IMPORTANCE_HIGH);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    "com.audioStreaming",
+                    "Audio Streaming",
+                    NotificationManager.IMPORTANCE_DEFAULT
+            );
+            channel.setShowBadge(false);
+            channel.setSound(null, null);
+
             if (notifyManager != null) {
                 notifyManager.createNotificationChannel(channel);
             }
 
             notifyBuilder.setChannelId("com.audioStreaming");
-            notifyBuilder.setOnlyAlertOnce(true);
-            
         }
+
         notifyManager.notify(NOTIFY_ME_ID, notifyBuilder.build());
     }
 
@@ -361,9 +377,16 @@ public class Signal extends Service implements OnErrorListener,
     public void playerStopped(int perf) {
         this.isPlaying = false;
         this.isPreparingStarted = false;
+
+        makeNotificationOngoing(false);
         sendBroadcast(new Intent(Mode.STOPPED));
         //  TODO
     }
 
-
+    private void makeNotificationOngoing(boolean isOngoing) {
+        if (notifyBuilder == null) return; // ie. notification hasn't been shown yet
+        if (notifyManager == null) return; // ie. onCreate hasn't been called yet. I don't think this is possible, but just incase
+        notifyBuilder.setOngoing(isOngoing);
+        notifyManager.notify(NOTIFY_ME_ID, notifyBuilder.build());
+    }
 }
