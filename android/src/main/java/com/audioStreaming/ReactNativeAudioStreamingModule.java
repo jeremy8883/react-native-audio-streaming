@@ -114,7 +114,7 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
   }
 
   @ReactMethod public void destroyNotification() {
-    signal.exitNotification();
+    signal.destroyNotification();
   }
 
   @ReactMethod public void getStatus(Callback callback) {

@@ -1,9 +1,5 @@
 package com.audioStreaming;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -17,13 +13,9 @@ import android.media.MediaPlayer.OnPreparedListener;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Binder;
-import android.os.Build;
-import android.os.Handler;
 import android.os.IBinder;
-import android.support.v4.app.TaskStackBuilder;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
-import android.widget.RemoteViews;
 
 import com.spoledge.aacdecoder.MultiPlayer;
 import com.spoledge.aacdecoder.PlayerCallback;
@@ -34,13 +26,7 @@ public class Signal extends Service implements OnErrorListener,
         OnInfoListener,
         PlayerCallback {
 
-
-    // Notification
-    private Class<?> clsActivity;
-    private static final int NOTIFY_ME_ID = 696969;
-    private Notification.Builder notifyBuilder;
-    private NotificationManager notifyManager = null;
-    public static RemoteViews remoteViews;
+    private PlayerNotification playerNotification;
     private MultiPlayer aacPlayer;
 
     private static final int AAC_BUFFER_CAPACITY_MS = 2500;
@@ -50,10 +36,8 @@ public class Signal extends Service implements OnErrorListener,
             BROADCAST_PLAYBACK_PLAY = "pause",
             BROADCAST_EXIT = "exit";
 
-    private final Handler handler = new Handler();
     private final IBinder binder = new RadioBinder();
     private final SignalReceiver receiver = new SignalReceiver(this);
-    private Context context;
     private String streamingURL;
     public boolean isPlaying = false;
     public String streamTitle = null;
@@ -65,8 +49,11 @@ public class Signal extends Service implements OnErrorListener,
     private PhoneListener phoneStateListener;
 
     public void setData(Context context, ReactNativeAudioStreamingModule module) {
-        this.context = context;
-        this.clsActivity = module.getClassActivity();
+        this.playerNotification = new PlayerNotification(
+                module.getClassActivity(),
+                context,
+                this
+        );
         this.module = module;
 
         this.eventsReceiver = new EventsReceiver(this.module);
@@ -114,8 +101,6 @@ public class Signal extends Service implements OnErrorListener,
             e.printStackTrace();
         }
 
-
-        this.notifyManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         try {
             java.net.URL.setURLStreamHandlerFactory(new java.net.URLStreamHandlerFactory() {
                 public java.net.URLStreamHandler createURLStreamHandler(String protocol) {
@@ -159,10 +144,6 @@ public class Signal extends Service implements OnErrorListener,
         updateNotificationAndShow();
     }
 
-    public NotificationManager getNotifyManager() {
-        return notifyManager;
-    }
-
     public class RadioBinder extends Binder {
         public Signal getService() {
             return Signal.this;
@@ -170,73 +151,21 @@ public class Signal extends Service implements OnErrorListener,
     }
 
     public void showNotification() {
-        remoteViews = new RemoteViews(context.getPackageName(), R.layout.streaming_notification_player);
         streamTitle = null; // Will get set to its proper value again once the player starts
 
-        String packageName = context.getPackageName();
-        Intent openApp = context.getPackageManager().getLaunchIntentForPackage(packageName);
-        // Prevent the app from launching a new instance
-        openApp.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        playerNotification.showNotification();
+    }
 
-        notifyBuilder = new Notification.Builder(this.context)
-                .setSmallIcon(android.R.drawable.ic_lock_silent_mode_off) // TODO Use app icon instead
-                .setContentText("")
-                .setOngoing(true)
-                .setContent(remoteViews)
-                .setCategory(Notification.CATEGORY_TRANSPORT)
-                // Stops the playback when the notification is swiped away
-                .setDeleteIntent(makePendingIntent(BROADCAST_EXIT))
-                // Make it visible in the lock screen
-                .setVisibility(Notification.VISIBILITY_PUBLIC)
-                .setContentIntent(
-                        PendingIntent.getActivity(context, 0, openApp, PendingIntent.FLAG_CANCEL_CURRENT)
-                );
-
-        Intent resultIntent = new Intent(this.context, this.clsActivity);
-        resultIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        resultIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this.context);
-        stackBuilder.addParentStack(this.clsActivity);
-        stackBuilder.addNextIntent(resultIntent);
-
-        remoteViews.setOnClickPendingIntent(R.id.btn_streaming_notification_play, makePendingIntent(BROADCAST_PLAYBACK_PLAY));
-        notifyManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    "com.audioStreaming",
-                    "Audio Streaming",
-                    NotificationManager.IMPORTANCE_DEFAULT
-            );
-            channel.setShowBadge(false);
-            channel.setSound(null, null);
-
-            if (notifyManager != null) {
-                notifyManager.createNotificationChannel(channel);
-            }
-
-            notifyBuilder.setChannelId("com.audioStreaming");
+    public void cancelAllNotifications() {
+        if (playerNotification != null) {
+            playerNotification.cancelAllNotifications();
         }
-
-        updateNotificationAndShow();
     }
 
-    private PendingIntent makePendingIntent(String broadcast) {
-        Intent intent = new Intent(broadcast);
-        return PendingIntent.getBroadcast(this.context, 0, intent, 0);
-    }
-
-    public void clearNotification() {
-        if (notifyManager != null)
-            notifyManager.cancel(NOTIFY_ME_ID);
-    }
-
-    public void exitNotification() {
-        notifyManager.cancelAll();
-        clearNotification();
-        notifyBuilder = null;
-        notifyManager = null;
+    public void destroyNotification() {
+        if (playerNotification != null) {
+            playerNotification.destroy();
+        }
     }
 
     public boolean isConnected() {
@@ -366,10 +295,9 @@ public class Signal extends Service implements OnErrorListener,
         metaIntent.putExtra("value", value);
         sendBroadcast(metaIntent);
 
-        if (key != null && key.equals("StreamTitle") && remoteViews != null && value != null) {
+        if (key != null && key.equals("StreamTitle") && value != null) {
             this.streamTitle = value;
             updateNotificationAndShow();
-            notifyManager.notify(NOTIFY_ME_ID, notifyBuilder.build());
         }
     }
 
@@ -388,26 +316,9 @@ public class Signal extends Service implements OnErrorListener,
         //  TODO
     }
 
-    private void updateNotificationBuilder() {
-        if (notifyBuilder == null) return; // ie. notification hasn't been shown yet
-
-        notifyBuilder.setOngoing(this.isPlaying);
-        remoteViews.setTextViewText(
-                R.id.song_name_notification,
-                this.streamTitle == null ? "" : this.streamTitle
-        );
-        remoteViews.setImageViewResource(
-                R.id.btn_streaming_notification_play,
-                this.isPlaying ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play
-        );
-        notifyBuilder.setContent(remoteViews);
-    }
-
     private void updateNotificationAndShow() {
-        if (notifyBuilder == null) return; // ie. notification hasn't been shown yet
-        if (notifyManager == null) return; // ie. onCreate hasn't been called yet. I don't think this is possible, but just incase
+        if (playerNotification == null) return; // ie. notification hasn't been shown yet
 
-        updateNotificationBuilder();
-        notifyManager.notify(NOTIFY_ME_ID, notifyBuilder.build());
+        playerNotification.updateNotification(this.streamTitle, this.isPlaying);
     }
 }
