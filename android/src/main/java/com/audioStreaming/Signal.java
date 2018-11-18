@@ -6,11 +6,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.AudioTrack;
-import android.media.MediaPlayer;
-import android.media.MediaPlayer.OnCompletionListener;
-import android.media.MediaPlayer.OnErrorListener;
-import android.media.MediaPlayer.OnInfoListener;
-import android.media.MediaPlayer.OnPreparedListener;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Binder;
@@ -19,10 +14,7 @@ import android.os.IBinder;
 import com.spoledge.aacdecoder.MultiPlayer;
 import com.spoledge.aacdecoder.PlayerCallback;
 
-public class Signal extends Service implements OnErrorListener,
-        OnCompletionListener,
-        OnPreparedListener,
-        OnInfoListener,
+public class Signal extends Service implements
         PlayerCallback,
         AudioManager.OnAudioFocusChangeListener {
 
@@ -243,51 +235,6 @@ public class Signal extends Service implements OnErrorListener,
         }
 
         return Service.START_NOT_STICKY;
-    }
-
-    @Override
-    public void onPrepared(MediaPlayer _mediaPlayer) {
-        this.isPreparingStarted = false;
-        sendBroadcast(new Intent(Mode.PREPARED));
-    }
-
-    @Override
-    public void onCompletion(MediaPlayer mediaPlayer) {
-        this.isPlaying = false;
-        this.aacPlayer.stop();
-
-        updateNotificationAndShow();
-        sendBroadcast(new Intent(Mode.COMPLETED));
-    }
-
-    @Override
-    public boolean onInfo(MediaPlayer mp, int what, int extra) {
-        if (what == 701) {
-            this.isPlaying = false;
-            sendBroadcast(new Intent(Mode.BUFFERING_START));
-        } else if (what == 702) {
-            this.isPlaying = true;
-            sendBroadcast(new Intent(Mode.BUFFERING_END));
-        }
-        updateNotificationAndShow();
-        return false;
-    }
-
-    @Override
-    public boolean onError(MediaPlayer mp, int what, int extra) {
-        switch (what) {
-            case MediaPlayer.MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK:
-                //Log.v("ERROR", "MEDIA ERROR NOT VALID FOR PROGRESSIVE PLAYBACK "	+ extra);
-                break;
-            case MediaPlayer.MEDIA_ERROR_SERVER_DIED:
-                //Log.v("ERROR", "MEDIA ERROR SERVER DIED " + extra);
-                break;
-            case MediaPlayer.MEDIA_ERROR_UNKNOWN:
-                //Log.v("ERROR", "MEDIA ERROR UNKNOWN " + extra);
-                break;
-        }
-        sendBroadcast(new Intent(Mode.ERROR));
-        return false;
     }
 
     @Override
