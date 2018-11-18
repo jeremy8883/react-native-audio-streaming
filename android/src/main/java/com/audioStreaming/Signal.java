@@ -81,6 +81,7 @@ public class Signal extends Service implements OnErrorListener,
         intentFilter.addAction(BROADCAST_PLAYBACK_STOP);
         intentFilter.addAction(BROADCAST_PLAYBACK_PLAY);
         intentFilter.addAction(BROADCAST_EXIT);
+        intentFilter.addAction(Intent.ACTION_HEADSET_PLUG);
         registerReceiver(this.receiver, intentFilter);
 
 
@@ -136,7 +137,7 @@ public class Signal extends Service implements OnErrorListener,
         updateNotificationAndShow();
     }
 
-    public void stop(boolean hideNotification, boolean destroyAudioListener) {
+    public void stop(boolean hideNotification, boolean destroyAudioManager) {
         this.isPreparingStarted = false;
 
         if (this.isPlaying) {
@@ -151,7 +152,7 @@ public class Signal extends Service implements OnErrorListener,
         } else {
             updateNotificationAndShow();
         }
-        if (destroyAudioListener) {
+        if (destroyAudioManager) {
             destroyAudioManager();
         }
     }

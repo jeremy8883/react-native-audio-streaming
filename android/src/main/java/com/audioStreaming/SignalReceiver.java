@@ -12,17 +12,25 @@ class SignalReceiver extends BroadcastReceiver {
         this.signal = signal;
     }
 
+    private void playPauseToggle() {
+        if (!this.signal.isPlaying) {
+            this.signal.play();
+        } else {
+            this.signal.stop(false, true);
+        }
+    }
+
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         if (action.equals(Signal.BROADCAST_PLAYBACK_PLAY)) {
-            if (!this.signal.isPlaying) {
-                this.signal.play();
-            } else {
-                this.signal.stop(false, true);
-            }
+            playPauseToggle();
         } else if (action.equals(Signal.BROADCAST_EXIT)) {
             this.signal.stop(true, true);
+        } else if (action.equals(Intent.ACTION_HEADSET_PLUG)) {
+            int state = intent.getIntExtra("state", -1);
+            if (state == 0) // Headset is unplugged
+                this.signal.stop(false, true);
         }
     }
 }
