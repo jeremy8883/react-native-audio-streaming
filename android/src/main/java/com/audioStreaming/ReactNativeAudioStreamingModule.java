@@ -50,14 +50,6 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
     return this.clsActivity;
   }
 
-  public void stopOncall() {
-    this.signal.stop();
-  }
-
-  public Signal getSignal() {
-    return signal;
-  }
-
   public void sendEvent(ReactContext reactContext, String eventName, @Nullable WritableMap params) {
     this.context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
         .emit(eventName, params);

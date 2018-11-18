@@ -4,7 +4,6 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Color;
 import android.media.AudioTrack;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
@@ -20,6 +19,8 @@ import android.telephony.TelephonyManager;
 
 import com.spoledge.aacdecoder.MultiPlayer;
 import com.spoledge.aacdecoder.PlayerCallback;
+
+import static android.telephony.PhoneStateListener.LISTEN_NONE;
 
 public class Signal extends Service implements OnErrorListener,
         OnCompletionListener,
@@ -76,13 +77,16 @@ public class Signal extends Service implements OnErrorListener,
         registerReceiver(this.eventsReceiver, new IntentFilter(Mode.ALBUM_UPDATED));
 
 
-        this.phoneStateListener = new PhoneListener(this.module);
+        System.out.println("TEST: setData called " + (this.phoneStateListener == null));
+
+        // I don't think `setData` ever gets called twice, but just to be safe.
+        destroyPhoneListeners();
+
+        this.phoneStateListener = new PhoneListener(this);
         this.phoneManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
         if (this.phoneManager != null) {
             this.phoneManager.listen(this.phoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
         }
-
-
     }
 
     @Override
@@ -118,6 +122,24 @@ public class Signal extends Service implements OnErrorListener,
         sendBroadcast(new Intent(Mode.CREATED));
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        destroyNotification();
+        destroyPhoneListeners();
+        stop();
+    }
+
+    private void destroyPhoneListeners() {
+        if (this.phoneManager != null & this.phoneStateListener != null) {
+            this.phoneManager.listen(this.phoneStateListener, LISTEN_NONE);
+
+            this.phoneStateListener = null;
+            this.phoneManager = null;
+        }
+    }
+
     public void setURLStreaming(String streamingURL) {
         this.streamingURL = streamingURL;
     }
@@ -132,6 +154,7 @@ public class Signal extends Service implements OnErrorListener,
         this.isPlaying = true;
         updateNotificationAndShow();
     }
+
 
     public void stop() {
         this.isPreparingStarted = false;

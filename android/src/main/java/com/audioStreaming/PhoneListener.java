@@ -7,10 +7,11 @@ import android.telephony.TelephonyManager;
 
 public class PhoneListener extends PhoneStateListener {
 
-    private ReactNativeAudioStreamingModule module;
+    private Signal signal;
+    private boolean wasPlaying = false;
 
-    public PhoneListener(ReactNativeAudioStreamingModule module) {
-        this.module = module;
+    public PhoneListener(Signal signal) {
+        this.signal = signal;
     }
 
     @Override
@@ -19,33 +20,23 @@ public class PhoneListener extends PhoneStateListener {
 
         switch (state) {
             case TelephonyManager.CALL_STATE_IDLE:
-                //CALL_STATE_IDLE;
-                //restart = new Intent(this.module.getReactApplicationContextModule(), this.module.getClassActivity());
-                //restart.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                //this.module.getReactApplicationContextModule().startActivity(restart);
+                if (wasPlaying) {
+                    wasPlaying = false;
+                    this.signal.play();
+                }
                 break;
             case TelephonyManager.CALL_STATE_OFFHOOK:
-                //CALL_STATE_OFFHOOK;
-                //restart = new Intent(this.module.getReactApplicationContextModule(), this.module.getClassActivity());
-                //restart.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                //this.module.getReactApplicationContextModule().startActivity(restart);
                 break;
             case TelephonyManager.CALL_STATE_RINGING:
-                //CALL_STATE_RINGING
-                if (this.module.getSignal().isPlaying) {
-                    this.module.stopOncall();
+                // A call is dialing, active or on hold
+                if (this.signal.isPlaying) {
+                    this.wasPlaying = true;
+                    this.signal.stop();
                 }
                 break;
             default:
                 break;
         }
         super.onCallStateChanged(state, incomingNumber);
-    }
-
-    public void onReceive(Context context, Intent intent) {
-        if (intent.getAction().equals(Intent.ACTION_HEADSET_PLUG)) {
-            //Headset broadcast
-            //  TODO
-        }
     }
 }
