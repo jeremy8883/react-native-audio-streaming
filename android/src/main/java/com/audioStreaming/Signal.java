@@ -151,10 +151,10 @@ public class Signal extends Service implements OnErrorListener,
         }
     }
 
-    public void showNotification(int color) {
+    public void showNotification(int color, String text) {
         streamTitle = null; // Will get set to its proper value again once the player starts
 
-        playerNotification.showNotification(color);
+        playerNotification.showNotification(color, text);
     }
 
     public void destroyNotification() {

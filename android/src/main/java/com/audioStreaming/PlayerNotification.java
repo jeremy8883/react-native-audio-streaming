@@ -32,6 +32,8 @@ public class PlayerNotification {
     private Context context = null;
     private static RemoteViews remoteViews;
 
+    private String text = null;
+
     public PlayerNotification(Class<?> clsActivity, Context context, Service service) {
         this.clsActivity = clsActivity;
         this.service = service;
@@ -69,7 +71,11 @@ public class PlayerNotification {
         );
     }
 
-    public void showNotification(int color) {
+    // `text` is optional. If not supplied, the stream title will be used instead,
+    // when it is eventually found.
+    public void showNotification(int color, String text) {
+        this.text = text;
+
         remoteViews = new RemoteViews(context.getPackageName(), R.layout.streaming_notification_player);
 
         String packageName = context.getPackageName();
@@ -102,6 +108,9 @@ public class PlayerNotification {
         remoteViews.setOnClickPendingIntent(R.id.btn_streaming_notification_play, makePendingIntent(BROADCAST_PLAYBACK_PLAY));
         remoteViews.setImageViewResource(R.id.streaming_icon, getLargeIcon());
         remoteViews.setInt(R.id.root_layout, "setBackgroundColor", color);
+        if (text != null) {
+            remoteViews.setTextViewText(R.id.song_name_notification, text);
+        }
         notifyManager = (NotificationManager) this.service.getSystemService(Context.NOTIFICATION_SERVICE);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -127,10 +136,13 @@ public class PlayerNotification {
         if (notifyBuilder == null) return; // ie. notification hasn't been shown yet
 
         notifyBuilder.setOngoing(isPlaying);
-        remoteViews.setTextViewText(
-                R.id.song_name_notification,
-                streamTitle == null ? "" : streamTitle
-        );
+        // If the notification text is supplied, don't show the stream title
+        if (text == null) {
+            remoteViews.setTextViewText(
+                    R.id.song_name_notification,
+                    streamTitle == null ? "" : streamTitle
+            );
+        }
         remoteViews.setImageViewResource(
                 R.id.btn_streaming_notification_play,
                 isPlaying ? R.drawable.ic_media_pause : R.drawable.ic_media_play

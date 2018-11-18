@@ -99,7 +99,12 @@ import { ReactNativeAudioStreaming } from 'react-native-audio-streaming';
 const url = "http://lacavewebradio.chickenkiller.com:8000/stream.mp3";
 ReactNativeAudioStreaming.pause();
 ReactNativeAudioStreaming.resume();
-ReactNativeAudioStreaming.play(url, {showIniOSMediaCenter: true, showInAndroidNotifications: true});
+ReactNativeAudioStreaming.play(url, {
+  showIniOSMediaCenter: true, 
+  showInAndroidNotifications: true,
+  notificationColor: '#FF9E18', // Android only
+  notificationText: 'My Radio Program', // Android only. Set to null if you'd like to get the stream title dynamically
+});
 ReactNativeAudioStreaming.stop();
 ```
 

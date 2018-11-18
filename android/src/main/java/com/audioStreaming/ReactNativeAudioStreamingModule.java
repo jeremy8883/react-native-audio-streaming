@@ -23,6 +23,7 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
 
   public static final String SHOULD_SHOW_NOTIFICATION = "showInAndroidNotifications";
   public static final String NOTIFICATION_COLOR = "notificationColor";
+  public static final String NOTIFICATION_TEXT = "notificationText";
   private ReactApplicationContext context;
 
   private Class<?> clsActivity;
@@ -31,6 +32,7 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
   private String streamingURL;
   private boolean shouldShowNotification;
   private int notificationColor;
+  private String notificationText;
 
   public ReactNativeAudioStreamingModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -96,6 +98,9 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
             options.getString(NOTIFICATION_COLOR) : null;
     this.notificationColor = color == null ? Color.BLACK : Color.parseColor(color);
 
+    this.notificationText = options.hasKey(NOTIFICATION_TEXT) ?
+            options.getString(NOTIFICATION_TEXT) : null;
+
     signal.setURLStreaming(streamingURL); // URL of MP3 or AAC stream
     playInternal();
   }
@@ -103,7 +108,7 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
   private void playInternal() {
     signal.play();
     if (shouldShowNotification) {
-      signal.showNotification(this.notificationColor);
+      signal.showNotification(this.notificationColor, this.notificationText);
     }
   }
 
