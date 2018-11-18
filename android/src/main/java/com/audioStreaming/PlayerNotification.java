@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
@@ -68,7 +69,7 @@ public class PlayerNotification {
         );
     }
 
-    public void showNotification() {
+    public void showNotification(int color) {
         remoteViews = new RemoteViews(context.getPackageName(), R.layout.streaming_notification_player);
 
         String packageName = context.getPackageName();
@@ -100,6 +101,7 @@ public class PlayerNotification {
 
         remoteViews.setOnClickPendingIntent(R.id.btn_streaming_notification_play, makePendingIntent(BROADCAST_PLAYBACK_PLAY));
         remoteViews.setImageViewResource(R.id.streaming_icon, getLargeIcon());
+        remoteViews.setInt(R.id.root_layout, "setBackgroundColor", color);
         notifyManager = (NotificationManager) this.service.getSystemService(Context.NOTIFICATION_SERVICE);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

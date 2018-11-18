@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.media.AudioTrack;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
@@ -150,10 +151,10 @@ public class Signal extends Service implements OnErrorListener,
         }
     }
 
-    public void showNotification() {
+    public void showNotification(int color) {
         streamTitle = null; // Will get set to its proper value again once the player starts
 
-        playerNotification.showNotification();
+        playerNotification.showNotification(color);
     }
 
     public void destroyNotification() {

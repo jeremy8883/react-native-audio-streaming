@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.os.IBinder;
 import android.util.Log;
 import com.facebook.react.bridge.Arguments;
@@ -21,6 +22,7 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
     implements ServiceConnection {
 
   public static final String SHOULD_SHOW_NOTIFICATION = "showInAndroidNotifications";
+  public static final String NOTIFICATION_COLOR = "notificationColor";
   private ReactApplicationContext context;
 
   private Class<?> clsActivity;
@@ -28,6 +30,7 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
   private Intent bindIntent;
   private String streamingURL;
   private boolean shouldShowNotification;
+  private int notificationColor;
 
   public ReactNativeAudioStreamingModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -88,6 +91,11 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
     this.streamingURL = streamingURL;
     this.shouldShowNotification =
         options.hasKey(SHOULD_SHOW_NOTIFICATION) && options.getBoolean(SHOULD_SHOW_NOTIFICATION);
+
+    String color = options.hasKey(NOTIFICATION_COLOR) ?
+            options.getString(NOTIFICATION_COLOR) : null;
+    this.notificationColor = color == null ? Color.BLACK : Color.parseColor(color);
+
     signal.setURLStreaming(streamingURL); // URL of MP3 or AAC stream
     playInternal();
   }
@@ -95,7 +103,7 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
   private void playInternal() {
     signal.play();
     if (shouldShowNotification) {
-      signal.showNotification();
+      signal.showNotification(this.notificationColor);
     }
   }
 
