@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
@@ -14,22 +15,20 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Binder;
 import android.os.IBinder;
-import android.telephony.PhoneStateListener;
-import android.telephony.TelephonyManager;
 
 import com.spoledge.aacdecoder.MultiPlayer;
 import com.spoledge.aacdecoder.PlayerCallback;
-
-import static android.telephony.PhoneStateListener.LISTEN_NONE;
 
 public class Signal extends Service implements OnErrorListener,
         OnCompletionListener,
         OnPreparedListener,
         OnInfoListener,
-        PlayerCallback {
+        PlayerCallback,
+        AudioManager.OnAudioFocusChangeListener {
 
-    private PlayerNotification playerNotification;
-    private MultiPlayer aacPlayer;
+    private PlayerNotification playerNotification = null;
+    private MultiPlayer aacPlayer = null;
+    private AudioTrack audioTrack = null;
 
     private static final int AAC_BUFFER_CAPACITY_MS = 2500;
     private static final int AAC_DECODER_CAPACITY_MS = 700;
@@ -47,8 +46,7 @@ public class Signal extends Service implements OnErrorListener,
     private EventsReceiver eventsReceiver;
     private ReactNativeAudioStreamingModule module;
 
-    private TelephonyManager phoneManager;
-    private PhoneListener phoneStateListener;
+    private AudioManager audioManager;
 
     public void setData(Context context, ReactNativeAudioStreamingModule module) {
         this.playerNotification = new PlayerNotification(
@@ -75,18 +73,6 @@ public class Signal extends Service implements OnErrorListener,
         registerReceiver(this.eventsReceiver, new IntentFilter(Mode.BUFFERING_END));
         registerReceiver(this.eventsReceiver, new IntentFilter(Mode.METADATA_UPDATED));
         registerReceiver(this.eventsReceiver, new IntentFilter(Mode.ALBUM_UPDATED));
-
-
-        System.out.println("TEST: setData called " + (this.phoneStateListener == null));
-
-        // I don't think `setData` ever gets called twice, but just to be safe.
-        destroyPhoneListeners();
-
-        this.phoneStateListener = new PhoneListener(this);
-        this.phoneManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
-        if (this.phoneManager != null) {
-            this.phoneManager.listen(this.phoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
-        }
     }
 
     @Override
@@ -126,18 +112,7 @@ public class Signal extends Service implements OnErrorListener,
     public void onDestroy() {
         super.onDestroy();
 
-        destroyNotification();
-        destroyPhoneListeners();
-        stop();
-    }
-
-    private void destroyPhoneListeners() {
-        if (this.phoneManager != null & this.phoneStateListener != null) {
-            this.phoneManager.listen(this.phoneStateListener, LISTEN_NONE);
-
-            this.phoneStateListener = null;
-            this.phoneManager = null;
-        }
+        stop(true, true);
     }
 
     public void setURLStreaming(String streamingURL) {
@@ -145,6 +120,12 @@ public class Signal extends Service implements OnErrorListener,
     }
 
     public void play() {
+        if (this.audioManager == null) {
+            audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            if (audioManager != null)
+                audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+        }
+
         if (isConnected()) {
             this.prepare();
         } else {
@@ -155,8 +136,7 @@ public class Signal extends Service implements OnErrorListener,
         updateNotificationAndShow();
     }
 
-
-    public void stop() {
+    public void stop(boolean hideNotification, boolean destroyAudioListener) {
         this.isPreparingStarted = false;
 
         if (this.isPlaying) {
@@ -165,7 +145,45 @@ public class Signal extends Service implements OnErrorListener,
         }
 
         sendBroadcast(new Intent(Mode.STOPPED));
-        updateNotificationAndShow();
+
+        if (hideNotification) {
+            destroyNotification();
+        } else {
+            updateNotificationAndShow();
+        }
+        if (destroyAudioListener) {
+            destroyAudioManager();
+        }
+    }
+
+    private void destroyAudioManager() {
+        if (this.audioManager != null) {
+            this.audioManager.abandonAudioFocus(this);
+            this.audioManager = null;
+        }
+    }
+
+    @Override
+    public void onAudioFocusChange(int focusChange) {
+        switch (focusChange) {
+            case AudioManager.AUDIOFOCUS_LOSS:
+                stop(false, true);
+                break;
+            case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                stop(false, false);
+                break;
+            case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+                if (audioTrack != null) {
+                    audioTrack.setVolume(1f);
+                }
+                break;
+            case AudioManager.AUDIOFOCUS_GAIN:
+                if (audioTrack != null) {
+                    audioTrack.setVolume(0.4f);
+                }
+                play();
+                break;
+        }
     }
 
     public class RadioBinder extends Binder {
@@ -204,7 +222,7 @@ public class Signal extends Service implements OnErrorListener,
             this.aacPlayer.playAsync(this.streamingURL);
         } catch (Exception e) {
             e.printStackTrace();
-            stop();
+            stop(true, true);
         }
     }
 
@@ -320,8 +338,17 @@ public class Signal extends Service implements OnErrorListener,
     }
 
     @Override
-    public void playerAudioTrackCreated(AudioTrack atrack) {
-        //  TODO
+    public void playerAudioTrackCreated(AudioTrack audioTrack) {
+        this.audioTrack = audioTrack;
+        // Just in case the volume was set back to 1 before the audioTrack was returned,
+        // reset the volume back to 1.
+        resetVolume();
+    }
+
+    private void resetVolume() {
+        if (this.audioTrack != null) {
+            this.audioTrack.setVolume(1);
+        }
     }
 
     @Override

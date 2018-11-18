@@ -105,12 +105,11 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
   }
 
   @ReactMethod public void stop() {
-    signal.stop();
+    signal.stop(true, true);
   }
 
   @ReactMethod public void pause() {
-    // Not implemented on aac
-    this.stop();
+    signal.stop(false, true);
   }
 
   @ReactMethod public void resume() {

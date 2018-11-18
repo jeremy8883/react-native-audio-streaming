@@ -19,11 +19,10 @@ class SignalReceiver extends BroadcastReceiver {
             if (!this.signal.isPlaying) {
                 this.signal.play();
             } else {
-                this.signal.stop();
+                this.signal.stop(false, true);
             }
         } else if (action.equals(Signal.BROADCAST_EXIT)) {
-            this.signal.stop();
-            this.signal.destroyNotification();
+            this.signal.stop(true, true);
         }
     }
 }
