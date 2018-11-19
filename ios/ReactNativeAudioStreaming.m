@@ -441,11 +441,16 @@ RCT_EXPORT_METHOD(getStatus: (RCTResponseSenderBlock) callback)
       // TODO Get artwork from stream
       // MPMediaItemArtwork *artwork = [[MPMediaItemArtwork alloc]initWithImage:[UIImage imageNamed:@"webradio1"]];
 
-      NSString* title = self.notificationText ?
+      NSString* title = self.notificationText != nil ?
          self.notificationText :
       self.currentSong ?
          self.currentSong :
          @"";
+
+      NSString* bundleName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
+      NSString* bundleDisplayName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleDisplayName"];
+
+      NSString* appName = bundleDisplayName == nil ? bundleName : bundleDisplayName;
 
       NSDictionary *nowPlayingInfo = [NSDictionary dictionaryWithObjectsAndKeys:
                                       title, MPMediaItemPropertyAlbumTitle,
