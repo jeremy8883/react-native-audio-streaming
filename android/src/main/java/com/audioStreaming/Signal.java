@@ -239,7 +239,7 @@ public class Signal extends Service implements
 
     @Override
     public void playerStarted() {
-        //  TODO
+        this.isPlaying = true;
     }
 
     @Override
@@ -247,17 +247,14 @@ public class Signal extends Service implements
         if (isPlaying) {
             this.isPreparingStarted = false;
             if (bufSizeMs < 500) {
-                this.isPlaying = false;
                 sendBroadcast(new Intent(Mode.BUFFERING_START));
                 //buffering
             } else {
-                this.isPlaying = true;
                 sendBroadcast(new Intent(Mode.PLAYING));
                 //playing
             }
         } else {
             //buffering
-            this.isPlaying = false;
             sendBroadcast(new Intent(Mode.BUFFERING_START));
         }
         updateNotificationAndShow();
@@ -306,7 +303,6 @@ public class Signal extends Service implements
 
         sendBroadcast(new Intent(Mode.STOPPED));
         updateNotificationAndShow();
-        //  TODO
     }
 
     private void updateNotificationAndShow() {

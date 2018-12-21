@@ -158,7 +158,14 @@ public class PlayerNotification {
         if (notifyManager == null) return; // ie. onCreate hasn't been called yet. I don't think this is possible, but just incase
 
         updateNotificationBuilder(streamTitle, isPlaying);
-        notifyManager.notify(NOTIFICATION_ID, notifyBuilder.build());
+
+        if (isPlaying) {
+            service.startForeground(NOTIFICATION_ID, notifyBuilder.build());
+        } else {
+            // No need to keep the service in the foreground if the radio is paused
+            service.stopForeground(false);
+            notifyManager.notify(NOTIFICATION_ID, notifyBuilder.build());
+        }
     }
 
     private PendingIntent makePendingIntent(String broadcast) {
@@ -167,8 +174,10 @@ public class PlayerNotification {
     }
 
     public void clearNotification() {
-        if (notifyManager != null)
+        if (notifyManager != null) {
+            service.stopForeground(true);
             notifyManager.cancel(NOTIFICATION_ID);
+        }
     }
 
     public void destroy() {
