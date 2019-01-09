@@ -66,7 +66,7 @@ RCT_EXPORT_MODULE()
 
 #pragma mark - Pubic API
 
-RCT_EXPORT_METHOD(play:(NSString *) streamUrl options:(NSDictionary *)options)
+RCT_EXPORT_METHOD(play:(NSString *) streamUrl showNotification:(BOOL)showNotification notificationText:(NSString *) notificationText notificationColor:(NSString *) notificationColor)
 {
    if (!self.audioPlayer) {
       return;
@@ -84,12 +84,8 @@ RCT_EXPORT_METHOD(play:(NSString *) streamUrl options:(NSDictionary *)options)
    self.showNowPlayingInfo = false;
    self.notificationText = nil;
 
-   if ([options objectForKey:@"showIniOSMediaCenter"]) {
-      self.showNowPlayingInfo = [[options objectForKey:@"showIniOSMediaCenter"] boolValue];
-   }
-   if ([options objectForKey:@"notificationText"]) {
-      self.notificationText = [[options objectForKey:@"notificationText"] stringValue];
-   }
+   self.showNowPlayingInfo = showNotification;
+   self.notificationText = notificationText;
 
    if (self.showNowPlayingInfo) {
       //unregister any existing registrations

@@ -11,7 +11,26 @@ import {
     Platform
 } from 'react-native';
 
-const { ReactNativeAudioStreaming } = NativeModules;
+const as = NativeModules.ReactNativeAudioStreaming;
+const ReactNativeAudioStreaming = {
+    play: (streamUrl, options) => {
+        console.log(streamUrl, options);
+        // This may seem pointless, but there was an occasional bug in ios where parsing
+        // the object map was crashing. It was difficult to replicate, so this will do.
+        as.play(
+          streamUrl,
+          options.showNotification == null ? true : options.showNotification,
+          options.notificationText == null ? '' : options.notificationText,
+          options.notificationColor == null ? '#000000' : options.notificationColor,
+        );
+    },
+    seekToTime: as.seekToTime,
+    goForward: as.goForward,
+    goBack: as.goBack,
+    pause: as.pause,
+    stop: as.stop,
+    getStatus: as.getStatus,
+};
 
 // Possibles states
 const PLAYING = 'PLAYING';

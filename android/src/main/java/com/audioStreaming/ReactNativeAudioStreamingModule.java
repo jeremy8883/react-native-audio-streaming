@@ -21,9 +21,6 @@ import javax.annotation.Nullable;
 public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
     implements ServiceConnection {
 
-  public static final String SHOULD_SHOW_NOTIFICATION = "showInAndroidNotifications";
-  public static final String NOTIFICATION_COLOR = "notificationColor";
-  public static final String NOTIFICATION_TEXT = "notificationText";
   private ReactApplicationContext context;
 
   private Class<?> clsActivity;
@@ -81,17 +78,13 @@ public class ReactNativeAudioStreamingModule extends ReactContextBaseJavaModule
     signal = null;
   }
 
-  @ReactMethod public void play(String streamingURL, ReadableMap options) {
+  @ReactMethod public void play(String streamingURL, boolean showNotification, String notificationText, String notificationColor) {
     this.streamingURL = streamingURL;
-    this.shouldShowNotification =
-        options.hasKey(SHOULD_SHOW_NOTIFICATION) && options.getBoolean(SHOULD_SHOW_NOTIFICATION);
+    this.shouldShowNotification = showNotification;
 
-    String color = options.hasKey(NOTIFICATION_COLOR) ?
-            options.getString(NOTIFICATION_COLOR) : null;
-    this.notificationColor = color == null ? Color.BLACK : Color.parseColor(color);
+    this.notificationColor = notificationColor == null ? Color.BLACK : Color.parseColor(notificationColor);
 
-    this.notificationText = options.hasKey(NOTIFICATION_TEXT) ?
-            options.getString(NOTIFICATION_TEXT) : null;
+    this.notificationText = notificationText;
 
     signal.setURLStreaming(streamingURL); // URL of MP3 or AAC stream
     playInternal();
