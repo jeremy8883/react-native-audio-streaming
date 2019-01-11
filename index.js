@@ -11,7 +11,7 @@ import {
     Platform
 } from 'react-native';
 
-const as = NativeModules.ReactNativeAudioStreaming;
+const as = NativeModules.ReactNativeAudioStreaming || {};
 const ReactNativeAudioStreaming = {
     play: (streamUrl, options) => {
         console.log(streamUrl, options);
